@@ -1,0 +1,50 @@
+name: Daily Data Update
+
+on:
+  schedule:
+    # 14:30 UTC = 9:30 AM ET (market open)
+    - cron: "30 14 * * 1-5"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run data update
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          cd src
+          python update_data.py
+
+      - name: Check for new data
+        id: check
+        run: |
+          if [ -f data/update_result.json ]; then
+            HAS_DATA=$(python -c "import json; r=json.load(open('data/update_result.json')); print(r.get('has_new_data', False))")
+            echo "has_new_data=$HAS_DATA" >> $GITHUB_OUTPUT
+          else
+            echo "has_new_data=False" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push updated data
+        if: steps.check.outputs.has_new_data == 'True'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/macro_indicators.db data/data_status.json
+          git commit -m "chore: daily data update $(date -u +%Y-%m-%d)"
+          git push
