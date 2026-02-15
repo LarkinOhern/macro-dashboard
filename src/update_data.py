@@ -8,7 +8,9 @@ for GitHub Actions integration.
 import json
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+CT = timezone(timedelta(hours=-6))
 
 import pandas as pd
 import yfinance as yf
@@ -33,7 +35,7 @@ def get_last_update() -> datetime:
         status = json.loads(STATUS_PATH.read_text())
         return datetime.fromisoformat(status["last_update"])
     # Default: fetch last 30 days if no status
-    return datetime.now() - timedelta(days=30)
+    return datetime.now(CT) - timedelta(days=30)
 
 
 def update_fred(conn: sqlite3.Connection, since: datetime) -> dict:
@@ -163,7 +165,7 @@ def main() -> None:
         market_result = update_markets(conn, last)
 
         # Write status
-        now = datetime.now()
+        now = datetime.now(CT)
         status = {
             "last_update": now.isoformat(),
             "fred_rows_loaded": fred_result["rows"],

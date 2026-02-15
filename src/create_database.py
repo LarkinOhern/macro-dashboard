@@ -3,7 +3,9 @@
 import json
 import sqlite3
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+CT = timezone(timedelta(hours=-6))
 
 import pandas as pd
 import yfinance as yf
@@ -131,7 +133,7 @@ def load_fred_data(conn: sqlite3.Connection) -> int:
         return 0
 
     fred = Fred(api_key=FRED_KEY)
-    start = datetime.now() - timedelta(days=365 * HISTORY_YEARS)
+    start = datetime.now(CT) - timedelta(days=365 * HISTORY_YEARS)
     total = 0
 
     for category, indicators in FRED_INDICATORS.items():
@@ -177,7 +179,7 @@ def load_fred_data(conn: sqlite3.Connection) -> int:
 
 def load_market_data(conn: sqlite3.Connection) -> int:
     """Fetch historical market data from yfinance and insert into market_indicators."""
-    start = (datetime.now() - timedelta(days=365 * HISTORY_YEARS)).strftime("%Y-%m-%d")
+    start = (datetime.now(CT) - timedelta(days=365 * HISTORY_YEARS)).strftime("%Y-%m-%d")
     total = 0
 
     for mkt in MARKET_INDICATORS:
@@ -235,8 +237,8 @@ def load_market_data(conn: sqlite3.Connection) -> int:
 def write_status(fred_rows: int, market_rows: int) -> None:
     """Write data_status.json with load summary."""
     status = {
-        "last_full_load": datetime.now().isoformat(),
-        "last_update": datetime.now().isoformat(),
+        "last_full_load": datetime.now(CT).isoformat(),
+        "last_update": datetime.now(CT).isoformat(),
         "fred_rows_loaded": fred_rows,
         "market_rows_loaded": market_rows,
         "history_years": HISTORY_YEARS,
