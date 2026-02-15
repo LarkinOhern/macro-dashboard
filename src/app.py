@@ -316,7 +316,8 @@ with st.sidebar:
     status = get_data_status()
     if status.get("last_update"):
         last = datetime.fromisoformat(status["last_update"])
-        age = datetime.now() - last
+        now = datetime.now(last.tzinfo) if last.tzinfo else datetime.now()
+        age = now - last
         if age.days == 0:
             freshness = "Updated today"
             color = "🟢"
